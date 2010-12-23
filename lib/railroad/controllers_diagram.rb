@@ -22,10 +22,14 @@ class ControllersDiagram < AppDiagram
     files = Dir.glob("app/controllers/**/*_controller.rb") - @options.exclude
     files << 'app/controllers/application.rb'
     files.each do |f|
-      class_name = extract_class_name(f)
-      # ApplicationController's file is 'application.rb'
-      class_name += 'Controller' if class_name == 'Application'
-      process_class class_name.constantize
+      begin
+        class_name = extract_class_name(f)
+        # ApplicationController's file is 'application.rb'
+        class_name += 'Controller' if class_name == 'Application'
+        process_class class_name.constantize
+      rescue NameError
+        warn "Warning: NameError exception occurred at #{f}, skipping"
+      end
     end 
   end # generate
 
@@ -36,7 +40,11 @@ class ControllersDiagram < AppDiagram
     begin
       disable_stdout
       # ApplicationController must be loaded first
-      require "app/controllers/application.rb" 
+      begin
+        require "app/controllers/application.rb"
+      rescue MissingSourceFile
+        require "app/controllers/application_controller.rb"
+      end
       files = Dir.glob("app/controllers/**/*_controller.rb") - @options.exclude
       files.each {|c| require c }
       enable_stdout
